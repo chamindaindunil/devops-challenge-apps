@@ -1,0 +1,90 @@
+name: Build and Deploy Two Containers to Azure Web Apps
+
+env:
+  AZURE_WEBAPP_NAME_WEB: your-web-app-name   # Replace with the Azure Web App name for the web
+  AZURE_WEBAPP_NAME_API: your-api-app-name   # Replace with the Azure Web App name for the api
+
+on:
+  push:
+    branches: [ "master" ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the repository
+      - uses: actions/checkout@v4
+
+      # Build and Test: Web App
+      - name: Install dependencies and test - web
+        working-directory: ./web
+        run: |
+          npm install
+          npm test
+
+      # Build and Test: API
+      - name: Install dependencies and test - api
+        working-directory: ./api
+        run: |
+          npm install
+          npm test
+
+      # Set up Docker Buildx
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Log in to GitHub container registry
+      - name: Log in to GitHub container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      # Build and Push: Web App container
+      - name: Build and push container image for web
+        uses: docker/build-push-action@v5
+        with:
+          context: ./web
+          push: true
+          tags: ghcr.io/${{ github.repository }}/web:${{ github.sha }}
+          file: ./web/Dockerfile
+
+      # Build and Push: API container
+      - name: Build and push container image for api
+        uses: docker/build-push-action@v5
+        with:
+          context: ./api
+          push: true
+          tags: ghcr.io/${{ github.repository }}/api:${{ github.sha }}
+          file: ./api/Dockerfile
+
+  deploy:
+    permissions:
+      contents: none
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      # Deploy Web App container
+      - name: Deploy web to Azure Web App
+        id: deploy-web-app
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME_WEB }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_WEB_PUBLISH_PROFILE }}
+          images: ghcr.io/${{ github.repository }}/web-app:${{ github.sha }}
+
+      # Deploy API container
+      - name: Deploy api to Azure Web App
+        id: deploy-api-app
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME_API }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_API_PUBLISH_PROFILE }}
+          images: ghcr.io/${{ github.repository }}/api:${{ github.sha }}
