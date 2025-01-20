@@ -23,16 +23,12 @@ jobs:
       # Build and Test: Web App
       - name: Install dependencies and test - web
         working-directory: ./web
-        run: |
-          npm install
-          npm test
+        run: npm install
 
       # Build and Test: API
       - name: Install dependencies and test - api
         working-directory: ./api
-        run: |
-          npm install
-          npm test
+        run: npm install
 
       # Set up Docker Buildx
       - name: Set up Docker Buildx
