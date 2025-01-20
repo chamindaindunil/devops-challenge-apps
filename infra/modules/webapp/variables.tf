@@ -1,0 +1,10 @@
+variable "location" {}
+variable "environment" {}
+variable "resource_group_name" {}
+variable "sku_type" {}
+variable "subnet_id" {}
+variable "docker_registry_url" {}
+variable "docker_registry_username" {}
+variable "docker_registry_password" {}
+variable "docker_image_name" {}
+variable "tags" {}
